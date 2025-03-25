@@ -325,6 +325,117 @@ def test_data():
     logger.debug("Returning test data")
     return jsonify(sample_data)
 
+@app.route("/search", methods=["GET"])
+def search_news():
+    """Search for stories by keyword"""
+    try:
+        search_term = request.args.get('q', '')
+        category = request.args.get('category', None)
+        logger.debug(f"Searching for: '{search_term}' in category: {category}")
+        
+        if not search_term.strip():
+            return jsonify({"error": "Search query is required"}), 400
+        
+        conn = duckdb.connect(DB_FILE)
+        
+        # First check if the table exists and has data
+        table_check = conn.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='hackernews'").fetchone()
+        if table_check[0] == 0:
+            logger.error("Table 'hackernews' does not exist!")
+            conn.close()
+            return jsonify({"error": "Database table not found"}), 500
+        
+        # Search logic with category filter if provided
+        if category and category.lower() != 'all':
+            sql_query = """
+                SELECT id, title, url, by, time, score, category 
+                FROM hackernews 
+                WHERE (title ILIKE ? OR url ILIKE ? OR by ILIKE ?) AND category = ?
+                ORDER BY time DESC 
+                LIMIT 50
+            """
+            search_param = f"%{search_term}%"
+            result = conn.execute(sql_query, [search_param, search_param, search_param, category]).fetchall()
+        else:
+            sql_query = """
+                SELECT id, title, url, by, time, score, category 
+                FROM hackernews 
+                WHERE title ILIKE ? OR url ILIKE ? OR by ILIKE ?
+                ORDER BY time DESC 
+                LIMIT 50
+            """
+            search_param = f"%{search_term}%"
+            result = conn.execute(sql_query, [search_param, search_param, search_param]).fetchall()
+        
+        conn.close()
+        news_list = [
+            {
+                "id": row[0],
+                "title": row[1],
+                "url": row[2],
+                "by": row[3],
+                "time": row[4],
+                "score": row[5],
+                "category": row[6]
+            }
+            for row in result
+        ]
+        
+        logger.debug(f"Search returned {len(news_list)} results")
+        return jsonify(news_list)
+    except Exception as e:
+        logger.error(f"Error in search_news: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/autocomplete", methods=["GET"])
+def get_autocomplete_suggestions():
+    """Get autocomplete suggestions based on title prefix"""
+    try:
+        prefix = request.args.get('q', '')
+        limit = int(request.args.get('limit', 7))  # Default to 7 suggestions
+        logger.debug(f"Getting autocomplete suggestions for: '{prefix}'")
+        
+        if not prefix.strip():
+            return jsonify([])
+        
+        conn = duckdb.connect(DB_FILE)
+        
+        # Get suggestions from titles
+        sql_query = """
+            SELECT DISTINCT title
+            FROM hackernews
+            WHERE title ILIKE ?
+            ORDER BY time DESC
+            LIMIT ?
+        """
+        search_param = f"{prefix}%"
+        result = conn.execute(sql_query, [search_param, limit]).fetchall()
+        
+        # If we don't have enough results with exact prefix, try broader match
+        if len(result) < limit:
+            remaining = limit - len(result)
+            broader_query = """
+                SELECT DISTINCT title
+                FROM hackernews
+                WHERE title ILIKE ? AND title NOT ILIKE ?
+                ORDER BY time DESC
+                LIMIT ?
+            """
+            broader_param = f"%{prefix}%"
+            broader_result = conn.execute(broader_query, [broader_param, search_param, remaining]).fetchall()
+            result.extend(broader_result)
+        
+        conn.close()
+        
+        # Format the results as an array of suggestion objects
+        suggestions = [{"value": row[0]} for row in result]
+        
+        logger.debug(f"Returning {len(suggestions)} autocomplete suggestions")
+        return jsonify(suggestions)
+    except Exception as e:
+        logger.error(f"Error in get_autocomplete_suggestions: {str(e)}")
+        return jsonify([]), 500
+
 @app.after_request
 def after_request(response):
     """Add CORS headers to all responses"""

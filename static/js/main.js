@@ -12,10 +12,17 @@ const tabBtns = document.querySelectorAll('.tab-btn');
 const modalTotalStories = document.getElementById('modal-total-stories');
 const modalAskHnCount = document.getElementById('modal-ask-hn-count');
 const modalShowHnCount = document.getElementById('modal-show-hn-count');
+const searchForm = document.getElementById('search-form');
+const searchInput = document.getElementById('search-input');
+const autocompleteContainer = document.getElementById('autocomplete-container');
 
 // State
 let currentCategory = 'all';
 let darkMode = localStorage.getItem('darkMode') === 'true';
+let currentSearchQuery = '';
+let isSearchMode = false;
+let autocompleteTimeout = null;
+let selectedAutocompleteIndex = -1;
 
 // Apply theme on page load
 if (darkMode) {
@@ -202,6 +209,97 @@ async function loadNews(category = 'all') {
         
         newsContent.appendChild(newsItem);
     });
+}
+
+// Search for stories
+async function searchNews(query, category = 'all') {
+    // Reset state
+    currentSearchQuery = query;
+    isSearchMode = !!query;
+    
+    // Update UI
+    newsContent.innerHTML = '<div class="loader"></div>';
+    
+    // Build endpoint
+    let endpoint = `/search?q=${encodeURIComponent(query)}`;
+    if (category !== 'all') {
+        endpoint += `&category=${encodeURIComponent(category)}`;
+    }
+    
+    // Fetch search results
+    const results = await fetchData(endpoint);
+    
+    if (!results) {
+        newsContent.innerHTML = '<p>Error searching news. Please try again.</p>';
+        return;
+    }
+    
+    // Clear loader
+    newsContent.innerHTML = '';
+    
+    // Add search results info if in search mode
+    if (isSearchMode) {
+        const resultsInfo = document.createElement('div');
+        resultsInfo.className = 'search-results-info';
+        resultsInfo.innerHTML = `
+            <div>Found ${results.length} results for: "${query}"</div>
+            <button class="clear-search" id="clear-search">
+                <i class="bi bi-x-circle"></i> Clear search
+            </button>
+        `;
+        newsContent.appendChild(resultsInfo);
+        
+        // Add event listener to clear button
+        document.getElementById('clear-search').addEventListener('click', clearSearch);
+    }
+    
+    if (results.length === 0) {
+        const noResults = document.createElement('p');
+        noResults.textContent = `No results found for "${query}". Try a different search term.`;
+        newsContent.appendChild(noResults);
+        return;
+    }
+    
+    // Render news items
+    results.forEach(item => {
+        const newsItem = document.createElement('div');
+        newsItem.className = 'news-item';
+        
+        const domain = item.url ? new URL(item.url).hostname.replace('www.', '') : '';
+        
+        newsItem.innerHTML = `
+            <div class="news-item-header">
+                <div class="news-title">
+                    <a href="${item.url || '#'}" target="_blank" rel="noopener noreferrer">
+                        ${item.title}
+                    </a>
+                    ${domain ? `<small>(${domain})</small>` : ''}
+                </div>
+                <div class="news-score">
+                    <i class="bi bi-arrow-up"></i> ${item.score || 0}
+                </div>
+            </div>
+            <div class="news-meta">
+                <span class="news-category">${item.category || 'Uncategorized'}</span>
+                <span class="news-author">
+                    <i class="bi bi-person"></i> ${item.by || 'Anonymous'}
+                </span>
+                <span class="news-time">
+                    <i class="bi bi-clock"></i> ${formatTimestamp(item.time)}
+                </span>
+            </div>
+        `;
+        
+        newsContent.appendChild(newsItem);
+    });
+}
+
+// Clear search results and go back to normal view
+function clearSearch() {
+    currentSearchQuery = '';
+    isSearchMode = false;
+    searchInput.value = '';
+    loadNews(currentCategory);
 }
 
 // Load and render stats
@@ -507,6 +605,124 @@ async function loadDetailedStats() {
     loadTopStories('alltime');
 }
 
+// Search form event listener
+searchForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const query = searchInput.value.trim();
+    
+    if (query) {
+        searchNews(query, currentCategory);
+    } else {
+        // If search query is empty, show regular news
+        loadNews(currentCategory);
+    }
+});
+
+// Fetch autocomplete suggestions
+async function fetchAutocompleteSuggestions(query) {
+    if (!query || query.trim().length < 1) {
+        hideAutocomplete();
+        return;
+    }
+    
+    try {
+        const endpoint = `/autocomplete?q=${encodeURIComponent(query)}`;
+        const suggestions = await fetchData(endpoint);
+        
+        if (suggestions && suggestions.length > 0) {
+            displayAutocompleteSuggestions(suggestions, query);
+        } else {
+            hideAutocomplete();
+        }
+    } catch (error) {
+        console.error('Error fetching autocomplete suggestions:', error);
+        hideAutocomplete();
+    }
+}
+
+// Display autocomplete suggestions
+function displayAutocompleteSuggestions(suggestions, query) {
+    // Clear previous suggestions
+    autocompleteContainer.innerHTML = '';
+    
+    // Highlight the matching part in suggestions
+    suggestions.forEach((suggestion, index) => {
+        const item = document.createElement('div');
+        item.className = 'autocomplete-item';
+        item.setAttribute('data-index', index);
+        
+        // Highlight the matched part
+        const value = suggestion.value;
+        const lowerValue = value.toLowerCase();
+        const lowerQuery = query.toLowerCase();
+        const startIndex = lowerValue.indexOf(lowerQuery);
+        
+        if (startIndex >= 0) {
+            const beforeMatch = value.substring(0, startIndex);
+            const match = value.substring(startIndex, startIndex + query.length);
+            const afterMatch = value.substring(startIndex + query.length);
+            
+            item.innerHTML = `${beforeMatch}<span class="highlight">${match}</span>${afterMatch}`;
+        } else {
+            item.textContent = value;
+        }
+        
+        item.addEventListener('click', () => {
+            selectAutocompleteSuggestion(suggestion.value);
+        });
+        
+        autocompleteContainer.appendChild(item);
+    });
+    
+    // Show the container
+    autocompleteContainer.classList.add('active');
+}
+
+// Hide autocomplete container
+function hideAutocomplete() {
+    autocompleteContainer.classList.remove('active');
+    autocompleteContainer.innerHTML = '';
+    selectedAutocompleteIndex = -1;
+}
+
+// Select a suggestion
+function selectAutocompleteSuggestion(value) {
+    searchInput.value = value;
+    hideAutocomplete();
+}
+
+// Navigate through suggestions with keyboard
+function handleAutocompleteKeyNavigation(event) {
+    const items = document.querySelectorAll('.autocomplete-item');
+    if (!items.length) return;
+    
+    // Remove selected class from all items
+    items.forEach(item => item.classList.remove('selected'));
+    
+    // Up arrow
+    if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        selectedAutocompleteIndex = selectedAutocompleteIndex <= 0 ? items.length - 1 : selectedAutocompleteIndex - 1;
+        items[selectedAutocompleteIndex].classList.add('selected');
+    }
+    // Down arrow
+    else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        selectedAutocompleteIndex = selectedAutocompleteIndex >= items.length - 1 ? 0 : selectedAutocompleteIndex + 1;
+        items[selectedAutocompleteIndex].classList.add('selected');
+    }
+    // Enter key
+    else if (event.key === 'Enter' && selectedAutocompleteIndex >= 0) {
+        event.preventDefault();
+        selectAutocompleteSuggestion(items[selectedAutocompleteIndex].textContent);
+        searchForm.dispatchEvent(new Event('submit'));
+    }
+    // Escape key
+    else if (event.key === 'Escape') {
+        hideAutocomplete();
+    }
+}
+
 // Event listeners
 refreshBtn.addEventListener('click', () => {
     loadNews(currentCategory);
@@ -573,4 +789,29 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCategories();
     loadNews();
     loadStats();
+    
+    // Autocomplete setup
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim();
+        
+        // Clear any existing timeout
+        if (autocompleteTimeout) {
+            clearTimeout(autocompleteTimeout);
+        }
+        
+        // Set a small delay to avoid making too many requests while typing
+        autocompleteTimeout = setTimeout(() => {
+            fetchAutocompleteSuggestions(query);
+        }, 300);
+    });
+    
+    // Keyboard navigation for autocomplete
+    searchInput.addEventListener('keydown', handleAutocompleteKeyNavigation);
+    
+    // Close autocomplete when clicking outside
+    document.addEventListener('click', (event) => {
+        if (!event.target.closest('.search-input-container')) {
+            hideAutocomplete();
+        }
+    });
 });
