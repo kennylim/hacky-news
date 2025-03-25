@@ -1,0 +1,576 @@
+// DOM elements
+const refreshBtn = document.getElementById('refresh-btn');
+const themeToggle = document.getElementById('theme-toggle');
+const categoriesList = document.getElementById('categories-list');
+const newsContent = document.getElementById('news-content');
+const selectedCategory = document.getElementById('selected-category');
+const updateLink = document.getElementById('update-link');
+const viewStatsBtn = document.getElementById('view-stats-btn');
+const statsModal = document.getElementById('stats-modal');
+const modalClose = document.querySelector('.modal-close');
+const tabBtns = document.querySelectorAll('.tab-btn');
+const modalTotalStories = document.getElementById('modal-total-stories');
+const modalAskHnCount = document.getElementById('modal-ask-hn-count');
+const modalShowHnCount = document.getElementById('modal-show-hn-count');
+
+// State
+let currentCategory = 'all';
+let darkMode = localStorage.getItem('darkMode') === 'true';
+
+// Apply theme on page load
+if (darkMode) {
+    document.body.setAttribute('data-theme', 'dark');
+    themeToggle.innerHTML = '<i class="bi bi-sun"></i>';
+}
+
+// Fetch data from API
+async function fetchData(endpoint) {
+    try {
+        const response = await fetch(endpoint);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Error fetching data from ${endpoint}:`, error);
+        return null;
+    }
+}
+
+// Format timestamp to readable date
+function formatTimestamp(timestamp) {
+    const date = new Date(timestamp * 1000);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 60) {
+        return `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
+    } else if (diffHours < 24) {
+        return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    } else if (diffDays < 7) {
+        return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    } else {
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    }
+}
+
+// Load and render categories
+async function loadCategories() {
+    const categories = await fetchData('/categories');
+    if (!categories) return;
+
+    // Clear existing categories except "All"
+    categoriesList.innerHTML = '<span class="category-pill active" data-category="all">All</span>';
+
+    // Primary categories that should appear first with clean names
+    const primaryCategories = [
+        { key: "Programming", label: "Programming" },
+        { key: "AI & ML", label: "AI & ML" },
+        { key: "Web Development", label: "Web Dev" },
+        { key: "Startups", label: "Startups" },
+        { key: "Security", label: "Security" },
+        { key: "DevOps", label: "DevOps" },
+        { key: "Mobile Dev", label: "Mobile" },
+        { key: "Design & UX", label: "Design" },
+        { key: "Data", label: "Data" },
+        { key: "Show HN", label: "Show HN" },
+        { key: "Ask HN", label: "Ask HN" },
+        { key: "Science & Research", label: "Science" },
+        { key: "Crypto & Web3", label: "Crypto" },
+        { key: "Tech Companies", label: "Tech Co." },
+        { key: "Hardware", label: "Hardware" },
+        { key: "Jobs & Careers", label: "Jobs" }
+    ];
+    
+    // Organize categories
+    const primaryCats = [];
+    const otherCats = [];
+    
+    // Function to find a category by name in the categories array
+    const findCategory = (name) => categories.find(c => c.name === name);
+    
+    // Organize primary categories first
+    primaryCategories.forEach(cat => {
+        const found = findCategory(cat.key);
+        if (found && found.count > 0) {
+            primaryCats.push({
+                name: cat.key,
+                label: cat.label,
+                count: found.count
+            });
+        }
+    });
+    
+    // Then add any remaining categories
+    categories.forEach(cat => {
+        // Skip if it's already in primaryCats
+        if (!primaryCategories.some(pc => pc.key === cat.name) && cat.count > 0) {
+            otherCats.push({
+                name: cat.name,
+                label: cat.name,
+                count: cat.count
+            });
+        }
+    });
+    
+    // Sort other categories by count
+    otherCats.sort((a, b) => b.count - a.count);
+    
+    // Add all categories to the UI
+    [...primaryCats, ...otherCats].forEach(category => {
+        const pill = document.createElement('span');
+        pill.className = 'category-pill';
+        pill.setAttribute('data-category', category.name);
+        pill.textContent = `${category.label} (${category.count})`;
+        categoriesList.appendChild(pill);
+    });
+
+    // Add event listeners
+    document.querySelectorAll('.category-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+            // Update UI
+            document.querySelector('.category-pill.active').classList.remove('active');
+            pill.classList.add('active');
+            
+            // Update state
+            currentCategory = pill.getAttribute('data-category');
+            selectedCategory.textContent = currentCategory === 'all' ? '(All)' : `(${currentCategory})`;
+            
+            // Load news with selected category
+            loadNews(currentCategory);
+        });
+    });
+}
+
+// Load and render news
+async function loadNews(category = 'all') {
+    // Show loader
+    newsContent.innerHTML = '<div class="loader"></div>';
+    
+    // Fetch news
+    const endpoint = category !== 'all' ? `/news?category=${category}` : '/news';
+    const news = await fetchData(endpoint);
+    if (!news) {
+        newsContent.innerHTML = '<p>Error loading news. Please try again.</p>';
+        return;
+    }
+    
+    // Clear loader
+    newsContent.innerHTML = '';
+    
+    if (news.length === 0) {
+        newsContent.innerHTML = '<p>No news found for this category.</p>';
+        return;
+    }
+    
+    // Render news items
+    news.forEach(item => {
+        const newsItem = document.createElement('div');
+        newsItem.className = 'news-item';
+        
+        const domain = item.url ? new URL(item.url).hostname.replace('www.', '') : '';
+        
+        newsItem.innerHTML = `
+            <div class="news-item-header">
+                <div class="news-title">
+                    <a href="${item.url || '#'}" target="_blank" rel="noopener noreferrer">
+                        ${item.title}
+                    </a>
+                    ${domain ? `<small>(${domain})</small>` : ''}
+                </div>
+                <div class="news-score">
+                    <i class="bi bi-arrow-up"></i> ${item.score || 0}
+                </div>
+            </div>
+            <div class="news-meta">
+                <span class="news-category">${item.category || 'Uncategorized'}</span>
+                <span class="news-author">
+                    <i class="bi bi-person"></i> ${item.by || 'Anonymous'}
+                </span>
+                <span class="news-time">
+                    <i class="bi bi-clock"></i> ${formatTimestamp(item.time)}
+                </span>
+            </div>
+        `;
+        
+        newsContent.appendChild(newsItem);
+    });
+}
+
+// Load and render stats
+async function loadStats() {
+    const stats = await fetchData('/stats');
+    if (!stats) return;
+    
+    // Store stats in a global variable to reuse for modal
+    window.statsData = stats;
+    
+    // No need to update any UI here since total stories has been moved to modal
+}
+
+// Update data from HN API
+async function updateData() {
+    const updateBtn = document.getElementById('update-link');
+    
+    // Set loading state
+    updateBtn.classList.add('loading');
+    updateBtn.disabled = true;
+    
+    try {
+        const result = await fetchData('/update');
+        
+        if (result && result.status === 'success') {
+            // Show success state
+            updateBtn.classList.remove('loading');
+            updateBtn.classList.add('success');
+            
+            // Reload all data
+            await Promise.all([
+                loadCategories(),
+                loadNews(currentCategory),
+                loadStats()
+            ]);
+            
+            // Reset button state after 2 seconds
+            setTimeout(() => {
+                updateBtn.classList.remove('success');
+                updateBtn.disabled = false;
+            }, 2000);
+        } else {
+            throw new Error('Update failed');
+        }
+    } catch (error) {
+        // Show error state
+        updateBtn.classList.remove('loading');
+        updateBtn.classList.add('error');
+        console.error('Error updating data:', error);
+        
+        // Reset button state after 2 seconds
+        setTimeout(() => {
+            updateBtn.classList.remove('error');
+            updateBtn.disabled = false;
+        }, 2000);
+    }
+}
+
+// Create and render the categories pie chart
+function renderCategoriesChart(categories) {
+    const ctx = document.getElementById('categories-chart').getContext('2d');
+    
+    // Get total count to calculate percentages
+    const totalCount = categories.reduce((sum, cat) => sum + cat.count, 0);
+    
+    // Prepare data for chart
+    const labels = [];
+    const data = [];
+    const backgroundColor = [];
+    
+    // Set predefined colors for main categories for better visual appearance
+    const categoryColors = {
+        "Programming": "#FF6B00",       // Primary orange
+        "AI & ML": "#6C5CE7",           // Purple
+        "Web Development": "#0984E3",   // Blue
+        "Startups": "#00B894",          // Green
+        "Security": "#D63031",          // Red
+        "DevOps": "#FDCB6E",            // Yellow
+        "Data": "#00CEC9",              // Teal
+        "Ask HN": "#E84393",            // Pink
+        "Show HN": "#6AB04C",           // Light green
+        "Science & Research": "#B2BEC3", // Gray
+        "Crypto & Web3": "#1289A7",     // Dark cyan
+        "Mobile Dev": "#F368E0",        // Magenta
+        "Hardware": "#FF9F43",          // Orange
+        "Design & UX": "#EE5A24",       // Dark orange
+        "Jobs & Careers": "#A29BFE",    // Lavender
+        "Tech Companies": "#222F3E"     // Dark blue-gray
+    };
+    
+    // Generate colors based on category name for categories without predefined colors
+    const getColor = (str) => {
+        if (categoryColors[str]) {
+            return categoryColors[str];
+        }
+        
+        // Hash function for other categories
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        
+        // Convert to hex color with a bit more saturation and brightness
+        const h = hash % 360;
+        return `hsl(${h}, 70%, 65%)`;
+    };
+    
+    // Define the main categories to show individually
+    const mainCategories = Object.keys(categoryColors);
+    
+    // Process and group categories
+    let otherCount = 0;
+    
+    // Sort categories by count (descending)
+    categories
+        .sort((a, b) => b.count - a.count)
+        .forEach(cat => {
+            // Show main categories and those with at least 2% of total
+            if (mainCategories.includes(cat.name) || (cat.count / totalCount >= 0.02)) {
+                labels.push(cat.name);
+                data.push(cat.count);
+                backgroundColor.push(getColor(cat.name));
+            } else {
+                // Group small categories as "Other"
+                otherCount += cat.count;
+            }
+        });
+    
+    // Add "Other" category if there are small categories
+    if (otherCount > 0) {
+        labels.push("Other");
+        data.push(otherCount);
+        backgroundColor.push("#99AABC"); // Gray-blue for other
+    }
+    
+    // Create the chart
+    if (window.categoriesChart) {
+        window.categoriesChart.destroy();
+    }
+    
+    window.categoriesChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColor,
+                borderWidth: 1,
+                borderColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-color')
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        color: getComputedStyle(document.documentElement).getPropertyValue('--text-color'),
+                        font: {
+                            size: 11
+                        },
+                        padding: 15,
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const percentage = ((value / totalCount) * 100).toFixed(1);
+                            return `${label}: ${value} stories (${percentage}%)`;
+                        }
+                    },
+                    padding: 12,
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleFont: {
+                        size: 14,
+                        weight: 'bold'
+                    },
+                    bodyFont: {
+                        size: 13
+                    }
+                }
+            },
+            elements: {
+                arc: {
+                    borderWidth: 1,
+                    hoverOffset: 15
+                }
+            },
+            animation: {
+                animateRotate: true,
+                animateScale: true,
+                duration: 1000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+}
+
+// Load top stories (recent high scores or all-time high scores)
+async function loadTopStories(type = 'recent') {
+    const container = document.getElementById(`top-stories-${type}`);
+    container.innerHTML = '<div class="loader"></div>';
+    
+    // Call API to get top stories (we will update server.py later)
+    const endpoint = type === 'recent' ? '/stats/top-recent' : '/stats/top-alltime';
+    const stories = await fetchData(endpoint);
+    
+    if (!stories || !stories.length) {
+        container.innerHTML = '<p>No top stories found.</p>';
+        return;
+    }
+    
+    // Clear loader
+    container.innerHTML = '';
+    
+    // Render top stories
+    stories.forEach((story, index) => {
+        const storyEl = document.createElement('div');
+        storyEl.className = 'top-story-item';
+        
+        const domain = story.url ? new URL(story.url).hostname.replace('www.', '') : '';
+        
+        storyEl.innerHTML = `
+            <div class="top-story-score">
+                <div class="top-story-points">${story.score}</div>
+                <div class="top-story-rank">#${index + 1}</div>
+            </div>
+            <div class="top-story-content">
+                <div class="top-story-title">
+                    <a href="${story.url || '#'}" target="_blank" rel="noopener noreferrer">
+                        ${story.title}
+                    </a>
+                    ${domain ? `<small>(${domain})</small>` : ''}
+                </div>
+                <div class="top-story-meta">
+                    <span class="story-category">${story.category || 'Uncategorized'}</span>
+                    <span class="story-author">by ${story.by || 'Anonymous'}</span>
+                    <span class="story-time">${formatTimestamp(story.time)}</span>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(storyEl);
+    });
+}
+
+// Toggle modal visibility
+function toggleStatsModal(show = true) {
+    if (show) {
+        statsModal.classList.add('show');
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        
+        // Load stats data if available
+        if (window.statsData) {
+            // Update total stories count
+            modalTotalStories.textContent = window.statsData.total_stories;
+            
+            // Create category pie chart
+            renderCategoriesChart(window.statsData.categories);
+            
+            // Load top stories
+            loadTopStories('recent');
+            loadTopStories('alltime');
+        } else {
+            // If stats are not loaded yet, fetch them
+            loadDetailedStats();
+        }
+    } else {
+        statsModal.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+}
+
+// Load all detailed stats for the modal
+async function loadDetailedStats() {
+    // Fetch basic stats if not already available
+    if (!window.statsData) {
+        await loadStats();
+    }
+    
+    if (window.statsData) {
+        // Update total stories count
+        modalTotalStories.textContent = window.statsData.total_stories;
+        
+        // Get Ask HN and Show HN counts
+        const askHN = window.statsData.categories.find(cat => cat.name === 'Ask HN');
+        const showHN = window.statsData.categories.find(cat => cat.name === 'Show HN');
+        
+        modalAskHnCount.textContent = askHN ? askHN.count : 0;
+        modalShowHnCount.textContent = showHN ? showHN.count : 0;
+        
+        // Create category pie chart
+        renderCategoriesChart(window.statsData.categories);
+    }
+    
+    // Load top stories
+    loadTopStories('recent');
+    loadTopStories('alltime');
+}
+
+// Event listeners
+refreshBtn.addEventListener('click', () => {
+    loadNews(currentCategory);
+    loadStats();
+});
+
+themeToggle.addEventListener('click', () => {
+    darkMode = !darkMode;
+    localStorage.setItem('darkMode', darkMode);
+    
+    if (darkMode) {
+        document.body.setAttribute('data-theme', 'dark');
+        themeToggle.innerHTML = '<i class="bi bi-sun"></i>';
+    } else {
+        document.body.removeAttribute('data-theme');
+        themeToggle.innerHTML = '<i class="bi bi-moon"></i>';
+    }
+});
+
+updateLink.addEventListener('click', event => {
+    event.preventDefault();
+    updateData();
+});
+
+// Stats modal events
+viewStatsBtn.addEventListener('click', () => {
+    toggleStatsModal(true);
+});
+
+modalClose.addEventListener('click', () => {
+    toggleStatsModal(false);
+});
+
+// Close modal when clicking outside the content
+statsModal.addEventListener('click', (event) => {
+    if (event.target === statsModal) {
+        toggleStatsModal(false);
+    }
+});
+
+// Close modal on escape key
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && statsModal.classList.contains('show')) {
+        toggleStatsModal(false);
+    }
+});
+
+// Tab switching in the stats modal
+tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab-btn').forEach(tb => tb.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+        
+        // Add active class to clicked tab
+        btn.classList.add('active');
+        const tabName = btn.getAttribute('data-tab');
+        document.getElementById(`top-stories-${tabName}`).classList.add('active');
+    });
+});
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    loadCategories();
+    loadNews();
+    loadStats();
+});
