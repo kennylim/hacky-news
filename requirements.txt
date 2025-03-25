@@ -1,0 +1,6 @@
+requests
+duckdb
+transformers
+torch
+flask
+flask-cors
