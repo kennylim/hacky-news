@@ -92,14 +92,27 @@ def get_news():
         logger.debug(f"Total records in hackernews table: {count[0]}")
         
         if category and category.lower() != 'all':
+            # Use case-insensitive comparison for more reliable filtering
             query = """
                 SELECT id, title, url, by, time, score, category 
                 FROM hackernews 
-                WHERE category = ? 
+                WHERE LOWER(category) = LOWER(?) 
                 ORDER BY time DESC 
                 LIMIT 30
             """
             result = conn.execute(query, [category]).fetchall()
+            
+            # If no results found with exact case-insensitive match, try finding categories that contain our term
+            if not result:
+                logger.debug(f"No exact match for category '{category}', trying partial match")
+                query = """
+                    SELECT id, title, url, by, time, score, category 
+                    FROM hackernews 
+                    WHERE LOWER(category) LIKE LOWER(?)
+                    ORDER BY time DESC 
+                    LIMIT 30
+                """
+                result = conn.execute(query, [f"%{category}%"]).fetchall()
         else:
             query = """
                 SELECT id, title, url, by, time, score, category 
@@ -347,15 +360,28 @@ def search_news():
         
         # Search logic with category filter if provided
         if category and category.lower() != 'all':
+            # Use case-insensitive comparison for category matching
             sql_query = """
                 SELECT id, title, url, by, time, score, category 
                 FROM hackernews 
-                WHERE (title ILIKE ? OR url ILIKE ? OR by ILIKE ?) AND category = ?
+                WHERE (title ILIKE ? OR url ILIKE ? OR by ILIKE ?) AND LOWER(category) = LOWER(?)
                 ORDER BY time DESC 
                 LIMIT 50
             """
             search_param = f"%{search_term}%"
             result = conn.execute(sql_query, [search_param, search_param, search_param, category]).fetchall()
+            
+            # If no results with exact category match, try partial category matching
+            if not result:
+                logger.debug(f"No search results for exact category '{category}', trying partial match")
+                sql_query = """
+                    SELECT id, title, url, by, time, score, category 
+                    FROM hackernews 
+                    WHERE (title ILIKE ? OR url ILIKE ? OR by ILIKE ?) AND LOWER(category) LIKE LOWER(?)
+                    ORDER BY time DESC 
+                    LIMIT 50
+                """
+                result = conn.execute(sql_query, [search_param, search_param, search_param, f"%{category}%"]).fetchall()
         else:
             sql_query = """
                 SELECT id, title, url, by, time, score, category 

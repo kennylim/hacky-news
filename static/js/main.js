@@ -162,7 +162,7 @@ async function loadNews(category = 'all') {
     newsContent.innerHTML = '<div class="loader"></div>';
     
     // Fetch news
-    const endpoint = category !== 'all' ? `/news?category=${category}` : '/news';
+    const endpoint = category !== 'all' ? `/news?category=${encodeURIComponent(category)}` : '/news';
     const news = await fetchData(endpoint);
     if (!news) {
         newsContent.innerHTML = '<p>Error loading news. Please try again.</p>';
