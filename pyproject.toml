@@ -1,0 +1,60 @@
+[tool.poetry]
+name = "hacky-news"
+version = "1.0.0"
+description = "A modern Hacker News reader with AI-powered categorization and advanced search capabilities"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+license = "Apache-2.0"
+repository = "https://github.com/yourusername/hacky-news"
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.13"
+flask = ">=2.2.0"
+flask-cors = ">=3.0.10"
+duckdb = ">=0.8.0"
+requests = ">=2.28.0"
+transformers = ">=4.25.0"
+torch = ">=1.12.0"
+python-dotenv = ">=0.21.0"
+gunicorn = ">=20.1.0"
+schedule = ">=1.2.0"
+pydantic = ">=2.4.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=7.0.0"
+pytest-flask = ">=1.2.0"
+pytest-cov = ">=4.1.0"
+black = ">=23.3.0"
+isort = ">=5.12.0"
+flake8 = ">=6.0.0"
+mypy = ">=1.3.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.12"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+strict_optional = true
+warn_redundant_casts = true
+warn_no_return = true
+warn_return_any = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+python_classes = "Test*"

@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  hacky-news:
+    build: .
+    container_name: hacky-news-app
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./hackernews.duckdb:/app/hackernews.duckdb
+      - ./logs:/app/logs
+    environment:
+      - DEBUG=False
+      - PORT=5001
+      - HOST=0.0.0.0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
