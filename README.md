@@ -6,10 +6,10 @@ A modern Hacker News reader with AI-powered categorization and advanced search c
 
 ## Features
 
-- **AI-Powered Categorization**: Automatically classifies Hacker News stories using both keyword matching and a BART-large-mnli model
-- **Smart Search**: Full-text search with autocomplete suggestions
+- **News Classification**: Automatically classifies Hacker News stories using both keyword matching and a BART-large-mnli model
+- **Search**: Full-text search with autocomplete suggestions
 - **Category Filtering**: Browse stories by technology categories
-- **Real-time Updates**: Fetch the latest stories from Hacker News API
+- **Updates**: Fetch the latest stories from Hacker News API
 - **Dark/Light Mode**: Toggle between themes for comfortable reading
 - **Statistics Dashboard**: View story distribution and top posts
 - **Responsive Design**: Works on desktop and mobile devices
@@ -72,9 +72,7 @@ This architecture follows a modular design with clear separation of concerns:
 
 - Python 3.12 or higher
 - pip or Poetry/PDM for dependency management
-- Internet connection (for fetching stories and loading models)
-- 2GB+ RAM (recommended for ML model)
-- 1GB+ disk space
+
 
 ## Quick Start
 
@@ -291,12 +289,9 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 Future enhancements planned for this project:
 
-- Enhanced personalization with user profiles
-- More advanced ML models for better classification
-- Mobile applications (iOS/Android)
-- Offline support and PWA capabilities
+- Better ML models for better classification
 - Integration with other news sources
-- Social sharing features
+- Personalization with user profiles
 - Weekly email digests
 
 ## License
