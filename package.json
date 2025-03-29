@@ -1,0 +1,25 @@
+{
+  "name": "hacky-news",
+  "version": "1.0.0",
+  "description": "Hacker News aggregator and classifier",
+  "main": "server.py",
+  "scripts": {
+    "start": "python server.py",
+    "test": "pytest"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.1"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/hacky-news.git"
+  },
+  "keywords": [
+    "hacker-news",
+    "python",
+    "flask"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
