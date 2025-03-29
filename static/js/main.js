@@ -321,6 +321,17 @@ async function updateData() {
     updateBtn.classList.add('loading');
     updateBtn.disabled = true;
     
+    // Show refresh indicator in the main content area
+    const originalContent = newsContent.innerHTML;
+    const notification = document.createElement('div');
+    notification.className = 'update-notification';
+    notification.innerHTML = '<div class="loader"></div><p>Syncing with Hacker News...</p>';
+    if (newsContent.firstChild) {
+        newsContent.insertBefore(notification, newsContent.firstChild);
+    } else {
+        newsContent.appendChild(notification);
+    }
+    
     try {
         const result = await fetchData('/update');
         
@@ -329,12 +340,21 @@ async function updateData() {
             updateBtn.classList.remove('loading');
             updateBtn.classList.add('success');
             
+            // Update notification
+            notification.innerHTML = `<i class="bi bi-check-circle"></i><p>${result.message}</p>`;
+            notification.className = 'update-notification success';
+            
             // Reload all data
             await Promise.all([
                 loadCategories(),
                 loadNews(currentCategory),
                 loadStats()
             ]);
+            
+            // If stats modal is open, refresh its content too
+            if (statsModal.classList.contains('show')) {
+                loadDetailedStats();
+            }
             
             // Reset button state after 2 seconds
             setTimeout(() => {
@@ -350,10 +370,21 @@ async function updateData() {
         updateBtn.classList.add('error');
         console.error('Error updating data:', error);
         
+        // Update notification with error
+        notification.innerHTML = `<i class="bi bi-exclamation-circle"></i><p>Error updating: ${error.message}</p>`;
+        notification.className = 'update-notification error';
+        
         // Reset button state after 2 seconds
         setTimeout(() => {
             updateBtn.classList.remove('error');
             updateBtn.disabled = false;
+            
+            // Remove error notification after 3 seconds
+            setTimeout(() => {
+                if (notification.parentNode === newsContent) {
+                    newsContent.removeChild(notification);
+                }
+            }, 3000);
         }, 2000);
     }
 }
