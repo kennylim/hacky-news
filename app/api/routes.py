@@ -4,16 +4,16 @@ API routes for the Hacky News application.
 import logging
 import time
 from flask import Blueprint, jsonify, request, render_template
-
 from app.models.database import (
-    get_stories, 
+    get_stories,
     search_stories,
     get_categories,
     get_stats,
     get_top_stories,
     get_autocomplete_suggestions,
     setup_db,
-    ensure_test_data
+    ensure_test_data,
+    execute_query
 )
 from app.services.classifier import sync_news
 from app.config.settings import DEFAULT_DISPLAY_LIMIT
@@ -35,13 +35,13 @@ def index():
 def debug():
     """Debug page that shows raw database content"""
     try:
-        from app.models.database import execute_query
-        
         # Check if table exists
-        table_exists = execute_query("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='hackernews'")[0][0]
+        table_exists = execute_query(
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_name='hackernews'"
+        )[0][0]
         if not table_exists:
             return "Table 'hackernews' does not exist!"
-            
+        
         # Get record count
         count = execute_query("SELECT COUNT(*) FROM hackernews")[0][0]
         
@@ -49,7 +49,7 @@ def debug():
         result = execute_query("SELECT * FROM hackernews ORDER BY time DESC LIMIT 10")
         
         # Format as HTML
-        html = f"<h1>Debug Info</h1>"
+        html = "<h1>Debug Info</h1>"
         html += f"<p>Total records: {count}</p>"
         html += "<h2>Latest 10 Records</h2>"
         
@@ -61,7 +61,7 @@ def debug():
             html += "</table>"
         else:
             html += "<p>No records found</p>"
-            
+        
         return html
     except Exception as e:
         return f"Error: {str(e)}"
@@ -73,7 +73,7 @@ def get_news():
     try:
         category = request.args.get('category', None)
         limit = int(request.args.get('limit', DEFAULT_DISPLAY_LIMIT))
-        logger.debug(f"Getting news with category: {category}, limit: {limit}")
+        logger.debug("Getting news with category: %s, limit: %s", category, limit)
         
         # Get stories from database
         result = get_stories(category, limit)
@@ -92,10 +92,10 @@ def get_news():
             for row in result
         ]
         
-        logger.debug(f"Returning {len(news_list)} news items")
+        logger.debug("Returning %s news items", len(news_list))
         return jsonify(news_list)
     except Exception as e:
-        logger.error(f"Error in get_news: {str(e)}")
+        logger.error("Error in get_news: %s", str(e))
         return jsonify({"error": str(e)}), 500
 
 
@@ -115,10 +115,10 @@ def get_all_categories():
             for row in result
         ]
         
-        logger.debug(f"Returning {len(categories)} categories")
+        logger.debug("Returning %s categories", len(categories))
         return jsonify(categories)
     except Exception as e:
-        logger.error(f"Error in get_categories: {str(e)}")
+        logger.error("Error in get_categories: %s", str(e))
         return jsonify({"error": str(e)}), 500
 
 
@@ -132,9 +132,9 @@ def get_all_stats():
         logger.debug("Returning stats")
         return jsonify(stats)
     except Exception as e:
-        logger.error(f"Error in get_stats: {str(e)}")
+        logger.error("Error in get_stats: %s", str(e))
         return jsonify({"error": str(e)}), 500
-        
+
 
 @api_bp.route("/stats/top-recent", methods=["GET"])
 def get_top_recent_stories():
@@ -160,12 +160,12 @@ def get_top_recent_stories():
             for story in stories
         ]
         
-        logger.debug(f"Returning {len(result)} recent top stories")
+        logger.debug("Returning %s recent top stories", len(result))
         return jsonify(result)
     except Exception as e:
-        logger.error(f"Error in get_top_recent: {str(e)}")
+        logger.error("Error in get_top_recent: %s", str(e))
         return jsonify({"error": str(e)}), 500
-        
+
 
 @api_bp.route("/stats/top-alltime", methods=["GET"])
 def get_top_alltime_stories():
@@ -191,10 +191,10 @@ def get_top_alltime_stories():
             for story in stories
         ]
         
-        logger.debug(f"Returning {len(result)} all-time top stories")
+        logger.debug("Returning %s all-time top stories", len(result))
         return jsonify(result)
     except Exception as e:
-        logger.error(f"Error in get_top_alltime: {str(e)}")
+        logger.error("Error in get_top_alltime: %s", str(e))
         return jsonify({"error": str(e)}), 500
 
 
@@ -207,7 +207,7 @@ def update_news():
         
         # Get limit parameter
         limit = int(request.args.get('limit', 50))
-            
+        
         # Synchronize news
         news_count = sync_news(limit)
         
@@ -216,7 +216,7 @@ def update_news():
             "message": f"Successfully updated news data. Processed {news_count} stories."
         })
     except Exception as e:
-        logger.error(f"Error updating news: {str(e)}")
+        logger.error("Error updating news: %s", str(e))
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
@@ -263,7 +263,7 @@ def search_news():
         search_term = request.args.get('q', '')
         category = request.args.get('category', None)
         limit = int(request.args.get('limit', 50))
-        logger.debug(f"Searching for: '{search_term}' in category: {category}, limit: {limit}")
+        logger.debug("Searching for: '%s' in category: %s, limit: %s", search_term, category, limit)
         
         if not search_term.strip():
             return jsonify({"error": "Search query is required"}), 400
@@ -285,10 +285,10 @@ def search_news():
             for row in result
         ]
         
-        logger.debug(f"Search returned {len(news_list)} results")
+        logger.debug("Search returned %s results", len(news_list))
         return jsonify(news_list)
     except Exception as e:
-        logger.error(f"Error in search_news: {str(e)}")
+        logger.error("Error in search_news: %s", str(e))
         return jsonify({"error": str(e)}), 500
 
 
@@ -298,7 +298,7 @@ def autocomplete():
     try:
         prefix = request.args.get('q', '')
         limit = int(request.args.get('limit', 7))  # Default to 7 suggestions
-        logger.debug(f"Getting autocomplete suggestions for: '{prefix}'")
+        logger.debug("Getting autocomplete suggestions for: '%s'", prefix)
         
         if not prefix.strip():
             return jsonify([])
@@ -309,8 +309,8 @@ def autocomplete():
         # Format the results as an array of suggestion objects
         suggestions = [{"value": row[0]} for row in result]
         
-        logger.debug(f"Returning {len(suggestions)} autocomplete suggestions")
+        logger.debug("Returning %s autocomplete suggestions", len(suggestions))
         return jsonify(suggestions)
     except Exception as e:
-        logger.error(f"Error in get_autocomplete_suggestions: {str(e)}")
+        logger.error("Error in get_autocomplete_suggestions: %s", str(e))
         return jsonify([]), 500

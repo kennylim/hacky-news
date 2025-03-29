@@ -5,10 +5,10 @@ import logging
 import os
 from flask import Flask, send_from_directory
 from flask_cors import CORS
-
 from app.models.database import setup_db, ensure_test_data
 from app.config.settings import DEBUG, PORT, HOST
 from app.api.routes import api_bp
+
 
 def create_app(test_config=None):
     """
@@ -29,7 +29,7 @@ def create_app(test_config=None):
     logger.info("Starting Hacky News application")
     
     # Create and configure the app
-    app = Flask(__name__, 
+    app = Flask(__name__,
                 static_folder='../static',
                 static_url_path='/static',
                 template_folder='../templates')
