@@ -398,27 +398,27 @@ function renderCategoriesChart(categories) {
     const data = [];
     const backgroundColor = [];
     
-    // Set predefined colors for main categories for better visual appearance
+    // Set predefined colors inspired by Financial Times charting palette
     const categoryColors = {
-        "Programming": "#FF6B00",       // Primary orange
-        "AI & ML": "#6C5CE7",           // Purple
-        "Web Development": "#0984E3",   // Blue
-        "Startups": "#00B894",          // Green
-        "Security": "#D63031",          // Red
-        "DevOps": "#FDCB6E",            // Yellow
-        "Data": "#00CEC9",              // Teal
-        "Ask HN": "#E84393",            // Pink
-        "Show HN": "#6AB04C",           // Light green
-        "Science & Research": "#B2BEC3", // Gray
-        "Crypto & Web3": "#1289A7",     // Dark cyan
-        "Mobile Dev": "#F368E0",        // Magenta
-        "Hardware": "#FF9F43",          // Orange
-        "Design & UX": "#EE5A24",       // Dark orange
-        "Jobs & Careers": "#A29BFE",    // Lavender
-        "Tech Companies": "#222F3E"     // Dark blue-gray
+        "Programming": "#9e2f50",       // FT Red/Pink
+        "AI & ML": "#0d7680",           // FT Dark Teal/Blue
+        "Web Development": "#7ebfcc",   // FT Mid Blue
+        "Startups": "#f2dfce",          // FT Beige/Cream
+        "Security": "#b8b4b0",          // FT Grey
+        "DevOps": "#69404b",            // Darker Red/Brown
+        "Data": "#cceeee",              // FT Light Blue
+        "Ask HN": "#ffb81c",            // FT Yellow/Gold accent
+        "Show HN": "#59334c",           // Dark Purple/Pink
+        "Science & Research": "#a6806a", // Brownish Tone
+        "Crypto & Web3": "#777777",     // Neutral Mid-Grey
+        "Mobile Dev": "#e9decf",        // Lighter Beige
+        "Hardware": "#d4ac87",          // Brownish/Tan
+        "Design & UX": "#8b9ba5",       // Blue-Grey
+        "Jobs & Careers": "#f7a481",    // Lighter Salmon/Orange
+        "Tech Companies": "#3d5a5f"     // Darker Teal shade
     };
     
-    // Generate colors based on category name for categories without predefined colors
+    // Generate fallback colors (muted tones)
     const getColor = (str) => {
         if (categoryColors[str]) {
             return categoryColors[str];
@@ -430,9 +430,11 @@ function renderCategoriesChart(categories) {
             hash = str.charCodeAt(i) + ((hash << 5) - hash);
         }
         
-        // Convert to hex color with a bit more saturation and brightness
+        // Convert to muted HSL color
         const h = hash % 360;
-        return `hsl(${h}, 70%, 65%)`;
+        const s = 30 + (hash % 20); // Saturation between 30-50%
+        const l = 65 + (hash % 15); // Lightness between 65-80%
+        return `hsl(${h}, ${s}%, ${l}%)`;
     };
     
     // Define the main categories to show individually
@@ -460,7 +462,7 @@ function renderCategoriesChart(categories) {
     if (otherCount > 0) {
         labels.push("Other");
         data.push(otherCount);
-        backgroundColor.push("#99AABC"); // Gray-blue for other
+        backgroundColor.push("#b8b4b0"); // Use FT Grey for other
     }
     
     // Create the chart
@@ -469,7 +471,7 @@ function renderCategoriesChart(categories) {
     }
     
     window.categoriesChart = new Chart(ctx, {
-        type: 'pie',
+        type: 'doughnut', 
         data: {
             labels: labels,
             datasets: [{
@@ -482,13 +484,14 @@ function renderCategoriesChart(categories) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '60%', 
             plugins: {
                 legend: {
                     position: 'right',
                     labels: {
                         color: getComputedStyle(document.documentElement).getPropertyValue('--text-color'),
                         font: {
-                            size: 11
+                            size: 14 // Increased legend font size
                         },
                         padding: 15,
                         usePointStyle: true,
