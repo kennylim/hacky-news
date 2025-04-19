@@ -1,7 +1,7 @@
 :root {
     /* Light theme variables - Simplified Palette */
     --bg-color: #fff1e5; /* Salmon Pink (Color 1) */
-    --card-bg: #fdf8f2; /* Creamy Off-white - Complementary to Salmon */
+    --card-bg: #ffe8d9; /* Lighter Pink - Complementary to Salmon */
     --primary-color: #000000; /* Black (Color 2) - Text, links, active states */
     --text-color: var(--primary-color); /* Use black for main text */
     --text-secondary: #555555; /* Darker grey for secondary, derived from black */
@@ -80,7 +80,7 @@ header .container {
 }
 
 .logo h1 {
-    font-size: 1.8rem; /* Slightly larger logo text */
+    font-size: 2.0rem; /* Slightly larger logo text */
     font-weight: bold; /* Ensure logo is bold */
     color: var(--text-secondary); /* Match news title color */
 }
@@ -295,7 +295,7 @@ h2 {
 .modal-body {
     padding: 1.5rem;
     overflow-y: auto;
-    background-color: var(--card-bg); /* Use card background (creamy off-white) for modal body */
+    background-color: var(--bg-color); /* Use main background (salmon pink) for modal body */
 }
 
 /* Stats overview */
