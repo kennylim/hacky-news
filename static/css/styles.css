@@ -54,7 +54,7 @@ body {
 }
 
 header {
-    background-color: var(--card-bg);
+    background-color: var(--bg-color); /* Use main background color */
     box-shadow: var(--shadow); /* Use subtler shadow */
     padding: 1rem 0;
     position: sticky;
@@ -110,7 +110,7 @@ main {
 }
 
 .card {
-    background-color: var(--card-bg);
+    background-color: var(--bg-color); /* Use main background color */
     border-radius: 8px;
     box-shadow: var(--shadow);
     padding: 1.5rem;
@@ -255,7 +255,7 @@ h2 {
     justify-content: space-between;
     align-items: center;
     padding: 1.2rem 1.5rem;
-    background-color: var(--card-bg);
+    background-color: var(--bg-color); /* Use main background color */
     box-shadow: var(--shadow);
     border-bottom: 1px solid var(--border-color);
 }
@@ -308,7 +308,7 @@ h2 {
 }
 
 .modal-body .total-stories-card {
-    background-color: var(--card-bg); /* Keep cards inside modal off-white for contrast */
+    background-color: var(--bg-color); /* Use main background color */
     border-radius: 8px;
     padding: 1.2rem;
     box-shadow: var(--shadow);
@@ -360,7 +360,7 @@ h2 {
 }
 
 .modal-body .stats-card {
-    background-color: var(--card-bg); /* Keep cards inside modal off-white for contrast */
+    background-color: var(--bg-color); /* Use main background color */
     border-radius: 10px;
     padding: 1.5rem;
     box-shadow: var(--shadow);
@@ -568,11 +568,6 @@ h2 {
 }
 
 /* News section */
-.news-section .card {
-    background-color: var(--bg-color); /* Make news section card salmon pink */
-    box-shadow: none; /* Remove shadow from the main news card */
-}
-
 .news-content {
     display: grid; /* Changed to grid for columns */
     grid-template-columns: 1fr; /* Default to single column */
@@ -712,7 +707,7 @@ footer a:hover {
     right: 0;
     max-height: 250px;
     overflow-y: auto;
-    background-color: var(--card-bg);
+    background-color: var(--bg-color); /* Use main background color */
     border: 1px solid var(--border-color);
     border-radius: 4px;
     box-shadow: var(--shadow);
