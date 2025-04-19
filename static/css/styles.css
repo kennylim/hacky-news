@@ -295,7 +295,7 @@ h2 {
 .modal-body {
     padding: 1.5rem;
     overflow-y: auto;
-    background-color: var(--bg-color); /* Make modal body background salmon pink */
+    background-color: var(--card-bg); /* Use card background (creamy off-white) for modal body */
 }
 
 /* Stats overview */
@@ -410,25 +410,19 @@ h2 {
 }
 
 .tab-btn:hover {
-    color: var(--text-color);
+    color: var(--text-secondary); /* Keep secondary color on hover */
 }
 
 .tab-btn.active {
-    color: var(--primary-color); /* Black active tab */
-    border-color: var(--primary-color);
+    color: var(--text-secondary); /* Keep secondary color when active */
+    border: none; /* Ensure no border */
+    border-bottom: 2px solid transparent; /* Keep original transparent bottom border */
+    font-weight: 500; /* Keep original font weight */
 }
 
+/* Remove the triangle indicator - already done */
 .tab-btn.active::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-bottom: 6px solid var(--primary-color); /* Black indicator */
+    content: none; /* Remove the triangle */
 }
 
 .tab-content {
