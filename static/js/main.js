@@ -135,7 +135,8 @@ async function loadCategories() {
         const pill = document.createElement('span');
         pill.className = 'category-pill';
         pill.setAttribute('data-category', category.name);
-        pill.textContent = `${category.label} (${category.count})`;
+        // REMOVE COUNT: Only use the label
+        pill.textContent = category.label; 
         categoriesList.appendChild(pill);
     });
 
@@ -176,6 +177,9 @@ async function loadNews(category = 'all') {
         newsContent.innerHTML = '<p>No news found for this category.</p>';
         return;
     }
+
+    // Sort news by score (descending)
+    news.sort((a, b) => b.score - a.score);
     
     // Render news items
     news.forEach(item => {
@@ -183,30 +187,23 @@ async function loadNews(category = 'all') {
         newsItem.className = 'news-item';
         
         const domain = item.url ? new URL(item.url).hostname.replace('www.', '') : '';
-        
+
+        // Determine category label
+        const categoryLabel = item.category || 'General'; // Default if no category
+
         newsItem.innerHTML = `
             <div class="news-item-header">
-                <div class="news-title">
-                    <a href="${item.url || '#'}" target="_blank" rel="noopener noreferrer">
-                        ${item.title}
-                    </a>
-                    ${domain ? `<small>(${domain})</small>` : ''}
-                </div>
-                <div class="news-score">
-                    <i class="bi bi-arrow-up"></i> ${item.score || 0}
-                </div>
+                <span class="news-score"><i class="bi bi-arrow-up-circle"></i> ${item.score || 0}</span>
+                ${item.url ? `<span class="news-domain">${domain}</span>` : ''}
             </div>
+            <h3 class="news-title"><a href="${item.url || '#'}" target="_blank" rel="noopener noreferrer">${item.title}</a></h3>
             <div class="news-meta">
-                <span class="news-category">${item.category || 'Uncategorized'}</span>
-                <span class="news-author">
-                    <i class="bi bi-person"></i> ${item.by || 'Anonymous'}
-                </span>
-                <span class="news-time">
-                    <i class="bi bi-clock"></i> ${formatTimestamp(item.time)}
-                </span>
+                <span class="news-category">${categoryLabel}</span>
+                <span class="news-author"><i class="bi bi-person"></i> ${item.by || 'Unknown'}</span>
+                <span class="news-time"><i class="bi bi-clock"></i> ${formatTimestamp(item.time)}</span>
+                ${item.descendants ? `<span class="news-comments"><i class="bi bi-chat-dots"></i> ${item.descendants}</span>` : ''}
             </div>
         `;
-        
         newsContent.appendChild(newsItem);
     });
 }
@@ -754,73 +751,119 @@ function handleAutocompleteKeyNavigation(event) {
     }
 }
 
-// Event listeners
-refreshBtn.addEventListener('click', () => {
-    loadNews(currentCategory);
-    loadStats();
-});
-
-themeToggle.addEventListener('click', () => {
-    darkMode = !darkMode;
-    localStorage.setItem('darkMode', darkMode);
-    
-    if (darkMode) {
-        document.body.setAttribute('data-theme', 'dark');
-        themeToggle.innerHTML = '<i class="bi bi-sun"></i>';
-    } else {
-        document.body.removeAttribute('data-theme');
-        themeToggle.innerHTML = '<i class="bi bi-moon"></i>';
-    }
-});
-
-updateLink.addEventListener('click', event => {
-    event.preventDefault();
-    updateData();
-});
-
-// Stats modal events
-viewStatsBtn.addEventListener('click', () => {
-    toggleStatsModal(true);
-});
-
-modalClose.addEventListener('click', () => {
-    toggleStatsModal(false);
-});
-
-// Close modal when clicking outside the content
-statsModal.addEventListener('click', (event) => {
-    if (event.target === statsModal) {
-        toggleStatsModal(false);
-    }
-});
-
-// Close modal on escape key
-document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && statsModal.classList.contains('show')) {
-        toggleStatsModal(false);
-    }
-});
-
-// Tab switching in the stats modal
-tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        // Remove active class from all tabs
-        document.querySelectorAll('.tab-btn').forEach(tb => tb.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
-        
-        // Add active class to clicked tab
-        btn.classList.add('active');
-        const tabName = btn.getAttribute('data-tab');
-        document.getElementById(`top-stories-${tabName}`).classList.add('active');
+// Event Listeners
+function setupEventListeners() {
+    refreshBtn.addEventListener('click', () => {
+        loadNews(currentCategory);
+        loadStats();
     });
-});
 
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    loadCategories();
-    loadNews();
-    loadStats();
-    
+    themeToggle.addEventListener('click', () => {
+        darkMode = !darkMode;
+        localStorage.setItem('darkMode', darkMode);
+        
+        if (darkMode) {
+            document.body.setAttribute('data-theme', 'dark');
+            themeToggle.innerHTML = '<i class="bi bi-sun"></i>';
+        } else {
+            document.body.removeAttribute('data-theme');
+            themeToggle.innerHTML = '<i class="bi bi-moon"></i>';
+        }
+    });
+
+    updateLink.addEventListener('click', event => {
+        event.preventDefault();
+        updateData();
+    });
+
+    // Home link listener
+    const homeLink = document.getElementById('home-link');
+    if (homeLink) {
+        homeLink.addEventListener('click', (event) => {
+            event.preventDefault(); // Prevent default anchor behavior
+            
+            // Reset category state
+            currentCategory = 'all';
+            isSearchMode = false;
+            currentSearchQuery = '';
+            searchInput.value = ''; // Clear search input
+            autocompleteContainer.innerHTML = '';
+            autocompleteContainer.classList.remove('active');
+
+            // Update UI
+            document.querySelectorAll('.category-pill').forEach(pill => {
+                if (pill.getAttribute('data-category') === 'all') {
+                    pill.classList.add('active');
+                } else {
+                    pill.classList.remove('active');
+                }
+            });
+            selectedCategory.textContent = '(All)';
+            
+            // Load default news view
+            loadNews('all');
+        });
+    }
+
+    // Category pills listener
+    categoriesList.addEventListener('click', (event) => {
+        if (event.target.classList.contains('category-pill')) {
+            const pill = event.target;
+            // Update UI
+            document.querySelector('.category-pill.active').classList.remove('active');
+            pill.classList.add('active');
+            
+            // Update state
+            currentCategory = pill.getAttribute('data-category');
+            selectedCategory.textContent = currentCategory === 'all' ? '(All)' : `(${currentCategory})`;
+            isSearchMode = false; // Exit search mode when category changes
+            currentSearchQuery = '';
+            searchInput.value = '';
+            autocompleteContainer.innerHTML = '';
+            autocompleteContainer.classList.remove('active');
+            
+            // Load news with selected category
+            loadNews(currentCategory);
+        }
+    });
+
+    // Stats modal events
+    viewStatsBtn.addEventListener('click', () => {
+        toggleStatsModal(true);
+    });
+
+    modalClose.addEventListener('click', () => {
+        toggleStatsModal(false);
+    });
+
+    // Close modal when clicking outside the content
+    statsModal.addEventListener('click', (event) => {
+        if (event.target === statsModal) {
+            toggleStatsModal(false);
+        }
+    });
+
+    // Close modal on escape key
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && statsModal.classList.contains('show')) {
+            toggleStatsModal(false);
+        }
+    });
+
+    // Tab switching in the stats modal
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab-btn').forEach(tb => tb.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+            
+            // Add active class to clicked tab
+            btn.classList.add('active');
+            const tabName = btn.getAttribute('data-tab');
+            document.getElementById(`top-stories-${tabName}`).classList.add('active');
+        });
+    });
+
     // Autocomplete setup
     searchInput.addEventListener('input', () => {
         const query = searchInput.value.trim();
@@ -845,4 +888,13 @@ document.addEventListener('DOMContentLoaded', () => {
             hideAutocomplete();
         }
     });
-});
+}
+
+// Initial Load
+async function init() {
+    await loadCategories();
+    loadNews(currentCategory);
+    setupEventListeners(); // Call setupEventListeners after initial loads
+}
+
+init();
