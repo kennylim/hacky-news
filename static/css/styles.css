@@ -511,14 +511,22 @@ h2 {
     align-items: center;
 }
 
+/* Ensure category color applies within modal top stories list items (Increased Specificity) */
+.modal-body .stats-card .top-story-item .news-category {
+    color: #D9534F !important; /* Pleasant, standout red */
+    font-size: 0.9rem; /* Increased font size */
+    font-weight: 600; /* Consistent font weight */
+}
+
+/* Consolidated rule for news category (fallback/general) */
 .news-category {
-    background-color: transparent !important; /* Ensure background is transparent */
-    color: var(--ft-red) !important; /* Force text color to FT Red */
-    padding: 0; 
-    border-radius: 0; 
-    font-size: 0.8rem;
-    font-weight: 500; 
-    border: none; 
+    background-color: transparent !important;
+    color: #D9534F !important; /* Pleasant, standout red */
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.9rem; /* Increased font size */
+    font-weight: 600; /* Consistent font weight */
+    border: none;
 }
 
 .categories-list {
@@ -642,11 +650,12 @@ h2 {
 
 .news-category {
     background-color: transparent !important; /* Ensure background is transparent */
-    color: var(--ft-red) !important; /* Force text color to FT Red */
+    color: #D9534F !important; /* Use a pleasant, standout red */
     padding: 0; /* Remove padding */
     border-radius: 0; /* Remove rounding */
-    font-size: 0.8rem;
-    font-weight: 750; /* Keep it slightly bolder */
+    font-size: 0.9rem; /* Increased font size */
+    font-weight: 550; /* Adjusted font weight for readability */
+    border: none; 
 }
 
 .news-author, .news-time {

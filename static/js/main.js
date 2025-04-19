@@ -568,7 +568,7 @@ async function loadTopStories(type = 'recent') {
                     ${domain ? `<small>(${domain})</small>` : ''}
                 </div>
                 <div class="top-story-meta">
-                    <span class="story-category">${story.category || 'Uncategorized'}</span>
+                    <span class="news-category">${story.category || 'Uncategorized'}</span>
                     <span class="story-author">by ${story.by || 'Anonymous'}</span>
                     <span class="story-time">${formatTimestamp(story.time)}</span>
                 </div>
