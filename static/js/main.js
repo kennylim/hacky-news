@@ -178,8 +178,8 @@ async function loadNews(category = 'all') {
         return;
     }
 
-    // Sort news by score (descending)
-    news.sort((a, b) => b.score - a.score);
+    // Sort news by time (newest first)
+    news.sort((a, b) => b.time - a.time);
     
     // Render news items
     news.forEach(item => {
