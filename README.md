@@ -1,299 +1,212 @@
 # Hacky News
 
-A modern Hacker News reader with AI-powered categorization and advanced search capabilities. Built with Python, Flask, and DuckDB.
+A modern, categorized interface for Hacker News stories with analytics and search features.
 
-![Hacky News Screenshot](https://example.com/screenshot.png)
+![Hacky News Screenshot](https://example.com/hacky-news-screenshot.png)
 
 ## Features
 
-- **News Classification**: Automatically classifies Hacker News stories using both keyword matching and a BART-large-mnli model
-- **Search**: Full-text search with autocomplete suggestions
-- **Category Filtering**: Browse stories by technology categories
-- **Updates**: Fetch the latest stories from Hacker News API
-- **Dark/Light Mode**: Toggle between themes for comfortable reading
-- **Statistics Dashboard**: View story distribution and top posts
-- **Responsive Design**: Works on desktop and mobile devices
+- 📱 **Responsive UI** with a clean, modern design inspired by Financial Times
+- 🔍 **Automatic categorization** of news stories using NLP
+- 📊 **Analytics dashboard** with category distribution and top stories
+- 🔎 **Fast search** with autocomplete suggestions
+- 🌙 **Dark mode** support
+- 🔄 **Background updates** every 15 minutes
+- 📂 **Category filtering** with organized primary and secondary categories
 
 ## Architecture
 
-```
-┌───────────────────┐     ┌─────────────────────────────────────┐
-│                   │     │             Flask Server            │
-│   Hacker News API │     │ ┌───────────┐       ┌────────────┐  │
-│                   │     │ │           │       │            │  │
-│  ┌─────────────┐  │     │ │  API      │       │ AI         │  │
-│  │             │  │     │ │  Routes   │◄─────►│ Classifier │  │
-│  │   Stories   │  │     │ │           │       │            │  │
-│  │             │  │     │ └───────────┘       └────────────┘  │
-│  └─────────────┘  │     │        │                    ▲       │
-│         ▲         │     │        ▼                    │       │
-└─────────┼─────────┘     │ ┌───────────┐       ┌────────────┐  │
-          │               │ │           │       │            │  │
-          │               │ │  Database │       │Transformers│  │
-          └──────────────►│ │  Module   │       │   Model    │  │
-                          │ │           │       │            │  │
-                          │ └───────────┘       └────────────┘  │
-                          │        │                            │
-                          └────────┼────────────────────────────┘
-                                   │
-                                   ▼
-                          ┌─────────────────┐
-                          │                 │
-                          │  DuckDB         │
-                          │  Database       │
-                          │                 │
-                          └─────────────────┘
-                                   ▲
-                                   │
-                                   │
-                          ┌─────────────────┐        ┌──────────────┐
-                          │                 │        │              │
-                          │  Web Frontend   │◄───────┤   Browser    │
-                          │  (HTML/CSS/JS)  │        │              │
-                          │                 │        │              │
-                          └─────────────────┘        └──────────────┘
-```
+The application follows a modern Flask architecture with a clear separation of concerns:
 
-This architecture follows a modular design with clear separation of concerns:
-1. **Data Retrieval Layer**: Fetches stories from the Hacker News API
-2. **Classification Layer**: Processes stories using keyword matching and ML-based classification
-3. **Data Storage Layer**: Persists classified stories in DuckDB
-4. **API Layer**: Provides RESTful endpoints for the frontend
-5. **Frontend Layer**: User interface built with HTML, CSS, and JavaScript
+```mermaid
+flowchart TB
+    subgraph Client
+        UI["Web UI (HTML/CSS/JS)"]
+    end
+    
+    subgraph "Hacky News Server"
+        FLASK["Flask App"]
+        API["API Routes"]
+        SERVICES["Services Layer"]
+        MODELS["Data Models"]
+        
+        FLASK --> API
+        API --> SERVICES
+        SERVICES --> MODELS
+    end
+    
+    subgraph "Storage"
+        DB[(DuckDB)]
+    end
+    
+    subgraph "External"
+        HN["Hacker News API"]
+        NLP["NLP Model (BART-large-mnli)"]
+    end
+    
+    UI <--> API
+    MODELS <--> DB
+    SERVICES <--> HN
+    SERVICES <--> NLP
+    
+    style UI fill:#FFF1E5,color:#000000
+    style FLASK fill:#7EBFCC,color:#000000
+    style API fill:#7EBFCC,color:#000000
+    style SERVICES fill:#9E2F50,color:#FFFFFF
+    style MODELS fill:#9E2F50,color:#FFFFFF
+    style DB fill:#0D7680,color:#FFFFFF
+    style HN fill:#F2DFCE,color:#000000
+    style NLP fill:#F2DFCE,color:#000000
+```
 
 ## Tech Stack
 
-- **Backend**: Python 3.12+, Flask 2.x+, DuckDB
-- **Frontend**: HTML5, CSS3, JavaScript (ES2025), Chart.js
-- **Machine Learning**: Hugging Face Transformers with BART-large-mnli model
-- **Data Source**: Hacker News API
+- **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
+- **Backend**: Python, Flask
+- **Database**: DuckDB (embedded database)
+- **Charting**: Chart.js
+- **Style**: Bootstrap Icons
+- **NLP**: BART-large-mnli model via Hugging Face
 
-## Prerequisites
+## Setup & Installation
 
-- Python 3.12 or higher
-- pip or Poetry/PDM for dependency management
+### Prerequisites
 
+- Python 3.9+
+- Node.js and npm (for frontend dependencies)
 
-## Quick Start
-
-### Using Docker (Recommended)
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/hacky-news.git
-cd hacky-news
-
-# Build and run with Docker Compose
-docker-compose up
-```
-
-### Manual Setup
+### Quick Start
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/yourusername/hacky-news.git
 cd hacky-news
 ```
 
-2. Create a virtual environment and install dependencies:
-```bash
-# Using Poetry (recommended)
-poetry install
+2. Set up the environment:
 
-# Using pip
+```bash
+# Using the setup script (recommended)
+./install.sh
+
+# Or manually
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-3. Run the server:
+3. Run the application:
+
 ```bash
 python server.py
 ```
 
-4. Access the application at http://localhost:5001
+4. Open your browser and navigate to `http://localhost:5000`
 
-## Project Structure
+### Docker Deployment
 
-```
-hacky-news/
-├── app/                    # Main application package
-│   ├── __init__.py        # App factory function
-│   ├── api/               # API endpoints
-│   │   ├── __init__.py
-│   │   └── routes.py
-│   ├── config/            # Configuration settings
-│   │   ├── __init__.py
-│   │   └── settings.py
-│   ├── models/            # Database models
-│   │   ├── __init__.py
-│   │   └── database.py
-│   ├── services/          # Business logic services
-│   │   ├── __init__.py
-│   │   └── classifier.py
-│   └── utils/             # Utility functions
-│       └── __init__.py
-├── static/                # Static assets
-│   ├── css/
-│   │   └── styles.css
-│   └── js/
-│       └── main.js
-├── templates/             # HTML templates
-│   └── index.html
-├── tests/                 # Unit tests
-│   ├── __init__.py
-│   └── test_api.py
-├── server.py              # Development server
-├── wsgi.py                # Production WSGI entry point
-├── classifier.py          # Legacy classifier (now refactored)
-├── requirements.txt       # Python dependencies
-├── pyproject.toml         # Project metadata and Poetry dependencies
-├── Dockerfile             # Docker container definition
-├── docker-compose.yml     # Container orchestration
-├── create_venv.sh         # Script to create virtual environment
-└── README.md              # Project documentation
-```
-
-## How It Works
-
-### AI Classification System
-
-Hacky News uses a two-tiered approach to classify Hacker News stories:
-1. **Pattern Matching**: First attempts to classify using keyword detection for common patterns
-2. **Zero-shot Classification**: For more ambiguous titles, uses the BART-large-mnli transformer model
-
-Stories are classified into these categories:
-- Programming
-- AI & ML
-- Web Development
-- Startups
-- Security
-- DevOps
-- Mobile Dev
-- Design & UX
-- Data
-- Science & Research
-- Crypto & Web3
-- Tech Companies
-- Hardware
-- Jobs & Careers
-- Show HN
-- Ask HN
-
-### API Reference
-
-The application provides the following RESTful endpoints:
-
-#### Get Latest Stories
-```
-GET /news
-GET /news?category=Programming
-```
-
-#### Search Stories
-```
-GET /search?q=your_search_term
-GET /search?q=your_search_term&category=AI+%26+ML
-```
-
-#### Get Autocomplete Suggestions
-```
-GET /autocomplete?q=partial_term
-```
-
-#### Get Categories
-```
-GET /categories
-```
-
-#### Get Statistics
-```
-GET /stats
-GET /stats/top-recent
-GET /stats/top-alltime
-```
-
-#### Update Database
-```
-GET /update
-GET /update?limit=100
-```
-
-## Development
-
-### Setting Up for Development
+You can also run Hacky News using Docker:
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/hacky-news.git
-cd hacky-news
-
-# Set up development environment with Poetry
-poetry install --with dev
-
-# Or with pip
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements-dev.txt
+docker-compose up -d
 ```
 
-### Running Tests
+## API Documentation
 
-```bash
-# Run all tests
-poetry run pytest
+The application provides a RESTful API for accessing Hacker News data:
 
-# Run with coverage
-poetry run pytest --cov=app
+### News Endpoints
+
+- `GET /news` - Get latest news stories
+  - Query parameters:
+    - `category` (optional): Filter by category
+    - `limit` (optional): Limit number of results (default: 30)
+
+- `GET /search` - Search for news stories
+  - Query parameters:
+    - `q`: Search query (required)
+    - `category` (optional): Filter by category
+    - `limit` (optional): Limit number of results (default: 50)
+
+- `GET /autocomplete` - Get autocomplete suggestions
+  - Query parameters:
+    - `q`: Prefix to search for (required)
+    - `limit` (optional): Limit number of results (default: 7)
+
+### Category and Stats Endpoints
+
+- `GET /categories` - Get all available categories and their counts
+- `GET /stats` - Get basic stats about the database
+- `GET /stats/top-recent` - Get top stories by points, sorted by recent date
+- `GET /stats/top-alltime` - Get top stories by points of all time
+
+### System Endpoints
+
+- `GET /update` - Manually update news data from Hacker News API
+  - Query parameters:
+    - `limit` (optional): Limit number of stories to process (default: 50)
+
+## Example API Usage
+
+### Fetch Latest News
+
+```javascript
+fetch('/news')
+  .then(response => response.json())
+  .then(data => console.log(data));
 ```
 
-### Production Deployment
+### Search for Stories
 
-For production deployment, we recommend using Docker or Gunicorn:
-
-#### Using Docker (Recommended)
-
-```bash
-docker build -t hacky-news .
-docker run -p 5001:5001 hacky-news
+```javascript
+fetch('/search?q=python&category=Programming')
+  .then(response => response.json())
+  .then(data => console.log(data));
 ```
 
-#### Using Gunicorn
+### Get Category Distribution
 
-```bash
-gunicorn wsgi:app -b 0.0.0.0:5001 --workers 4
+```javascript
+fetch('/stats')
+  .then(response => response.json())
+  .then(data => {
+    console.log(`Total stories: ${data.total_stories}`);
+    data.categories.forEach(cat => {
+      console.log(`${cat.name}: ${cat.count} stories`);
+    });
+  });
 ```
+
+## Configuration
+
+Configuration options are stored in `app/config/settings.py`:
+
+- `DEBUG`: Enable/disable debug mode
+- `PORT`: Server port (default: 5000)
+- `HOST`: Server host (default: '0.0.0.0')
+- `DB_FILE`: DuckDB database file path
+- `DEFAULT_DISPLAY_LIMIT`: Default number of stories to display
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit issues or pull requests.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature-name`)
-3. Make your changes
-4. Run the tests (`pytest`)
-5. Commit your changes (`git commit -am 'Add some feature'`)
-6. Push to the branch (`git push origin feature/your-feature-name`)
-7. Create a new Pull Request
-
-## Benefits of This Solution
-
-- **Efficient Resource Usage**: DuckDB provides fast SQL queries with minimal resource usage
-- **Intelligent Categorization**: ML-powered classification gives more accurate results than rule-based systems
-- **Developer Friendly**: Simple architecture makes it easy to extend and maintain
-- **Modern Stack**: Uses current best practices and frameworks
-- **Low Latency**: Optimized for quick response times
-- **Privacy-Focused**: Runs ML locally instead of sending data to external APIs
-
-## Roadmap
-
-Future enhancements planned for this project:
-
-- Better ML models for better classification
-- Integration with other news sources
-- Personalization with user profiles
-- Weekly email digests
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgements
+
+- [Hacker News API](https://github.com/HackerNews/API)
+- [Hugging Face Transformers](https://huggingface.co/facebook/bart-large-mnli)
+- [DuckDB](https://duckdb.org/)
+- [Flask](https://flask.palletsprojects.com/)
+- [Chart.js](https://www.chartjs.org/)
+- [Bootstrap Icons](https://icons.getbootstrap.com/)

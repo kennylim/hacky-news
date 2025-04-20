@@ -25,6 +25,56 @@ logger = logging.getLogger(__name__)
 api_bp = Blueprint('api', __name__)
 
 
+# Helper functions for standardizing API responses
+def create_success_response(data, status_code=200):
+    """
+    Create a standardized success response.
+    
+    Args:
+        data: The data to return
+        status_code (int): HTTP status code
+        
+    Returns:
+        tuple: (response_json, status_code)
+    """
+    return jsonify(data), status_code
+
+
+def create_error_response(message, status_code=500):
+    """
+    Create a standardized error response.
+    
+    Args:
+        message (str): Error message
+        status_code (int): HTTP status code
+        
+    Returns:
+        tuple: (response_json, status_code)
+    """
+    return jsonify({"error": str(message)}), status_code
+
+
+def format_story(row):
+    """
+    Format a story database row as a JSON-friendly dictionary.
+    
+    Args:
+        row: Database row containing story data
+        
+    Returns:
+        dict: Formatted story data
+    """
+    return {
+        "id": row[0],
+        "title": row[1],
+        "url": row[2],
+        "by": row[3],
+        "time": row[4],
+        "score": row[5],
+        "category": row[6]
+    }
+
+
 @api_bp.route("/", methods=["GET"])
 def index():
     """Serve the index.html file"""
@@ -78,25 +128,14 @@ def get_news():
         # Get stories from database
         result = get_stories(category, limit)
         
-        # Format response
-        news_list = [
-            {
-                "id": row[0],
-                "title": row[1],
-                "url": row[2],
-                "by": row[3],
-                "time": row[4],
-                "score": row[5],
-                "category": row[6]
-            }
-            for row in result
-        ]
+        # Format response using the helper function
+        news_list = [format_story(row) for row in result]
         
         logger.debug("Returning %s news items", len(news_list))
-        return jsonify(news_list)
+        return create_success_response(news_list)
     except Exception as e:
         logger.error("Error in get_news: %s", str(e))
-        return jsonify({"error": str(e)}), 500
+        return create_error_response(f"Failed to retrieve news: {str(e)}")
 
 
 @api_bp.route("/categories", methods=["GET"])
@@ -116,10 +155,10 @@ def get_all_categories():
         ]
         
         logger.debug("Returning %s categories", len(categories))
-        return jsonify(categories)
+        return create_success_response(categories)
     except Exception as e:
         logger.error("Error in get_categories: %s", str(e))
-        return jsonify({"error": str(e)}), 500
+        return create_error_response(f"Failed to retrieve categories: {str(e)}")
 
 
 @api_bp.route("/stats", methods=["GET"])
@@ -130,10 +169,10 @@ def get_all_stats():
         stats = get_stats()
         
         logger.debug("Returning stats")
-        return jsonify(stats)
+        return create_success_response(stats)
     except Exception as e:
         logger.error("Error in get_stats: %s", str(e))
-        return jsonify({"error": str(e)}), 500
+        return create_error_response(f"Failed to retrieve stats: {str(e)}")
 
 
 @api_bp.route("/stats/top-recent", methods=["GET"])
@@ -161,10 +200,10 @@ def get_top_recent_stories():
         ]
         
         logger.debug("Returning %s recent top stories", len(result))
-        return jsonify(result)
+        return create_success_response(result)
     except Exception as e:
         logger.error("Error in get_top_recent: %s", str(e))
-        return jsonify({"error": str(e)}), 500
+        return create_error_response(f"Failed to retrieve top recent stories: {str(e)}")
 
 
 @api_bp.route("/stats/top-alltime", methods=["GET"])
@@ -192,10 +231,10 @@ def get_top_alltime_stories():
         ]
         
         logger.debug("Returning %s all-time top stories", len(result))
-        return jsonify(result)
+        return create_success_response(result)
     except Exception as e:
         logger.error("Error in get_top_alltime: %s", str(e))
-        return jsonify({"error": str(e)}), 500
+        return create_error_response(f"Failed to retrieve top all-time stories: {str(e)}")
 
 
 @api_bp.route("/update", methods=["GET"])
@@ -211,13 +250,13 @@ def update_news():
         # Synchronize news
         news_count = sync_news(limit)
         
-        return jsonify({
+        return create_success_response({
             "status": "success", 
             "message": f"Successfully updated news data. Processed {news_count} stories."
         })
     except Exception as e:
         logger.error("Error updating news: %s", str(e))
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return create_error_response(f"Failed to update news: {str(e)}")
 
 
 @api_bp.route("/test-data", methods=["GET"])
@@ -253,7 +292,7 @@ def test_data():
         }
     ]
     logger.debug("Returning test data")
-    return jsonify(sample_data)
+    return create_success_response(sample_data)
 
 
 @api_bp.route("/search", methods=["GET"])
@@ -266,30 +305,19 @@ def search_news():
         logger.debug("Searching for: '%s' in category: %s, limit: %s", search_term, category, limit)
         
         if not search_term.strip():
-            return jsonify({"error": "Search query is required"}), 400
+            return create_error_response("Search query is required", 400)
         
         # Get stories from database
         result = search_stories(search_term, category, limit)
         
         # Format response
-        news_list = [
-            {
-                "id": row[0],
-                "title": row[1],
-                "url": row[2],
-                "by": row[3],
-                "time": row[4],
-                "score": row[5],
-                "category": row[6]
-            }
-            for row in result
-        ]
+        news_list = [format_story(row) for row in result]
         
         logger.debug("Search returned %s results", len(news_list))
-        return jsonify(news_list)
+        return create_success_response(news_list)
     except Exception as e:
         logger.error("Error in search_news: %s", str(e))
-        return jsonify({"error": str(e)}), 500
+        return create_error_response(f"Search failed: {str(e)}")
 
 
 @api_bp.route("/autocomplete", methods=["GET"])
@@ -301,7 +329,7 @@ def autocomplete():
         logger.debug("Getting autocomplete suggestions for: '%s'", prefix)
         
         if not prefix.strip():
-            return jsonify([])
+            return create_success_response([])
         
         # Get suggestions from database
         result = get_autocomplete_suggestions(prefix, limit)
@@ -310,7 +338,7 @@ def autocomplete():
         suggestions = [{"value": row[0]} for row in result]
         
         logger.debug("Returning %s autocomplete suggestions", len(suggestions))
-        return jsonify(suggestions)
+        return create_success_response(suggestions)
     except Exception as e:
         logger.error("Error in get_autocomplete_suggestions: %s", str(e))
-        return jsonify([]), 500
+        return create_error_response(f"Autocomplete failed: {str(e)}")

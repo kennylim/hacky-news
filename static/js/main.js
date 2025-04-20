@@ -1,3 +1,19 @@
+/**
+ * Hacky News - A modern interface for Hacker News stories
+ * 
+ * This JavaScript file handles the client-side functionality of Hacky News,
+ * including data fetching, UI rendering, search, filtering, and analytics.
+ * 
+ * The code is organized into logical sections:
+ * - DOM elements and state variables
+ * - API helpers for data fetching
+ * - Utility functions
+ * - Core data loading functions
+ * - UI rendering functions
+ * - Event handlers
+ * - Initialization
+ */
+
 // DOM elements
 const refreshBtn = document.getElementById('refresh-btn');
 const themeToggle = document.getElementById('theme-toggle');
