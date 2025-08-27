@@ -2,7 +2,9 @@
 
 A modern Hacker News reader with AI-powered categorization and advanced search capabilities. Built with Python, Flask, and DuckDB.
 
-![Hacky News Screenshot](https://example.com/screenshot.png)
+ 
+<img width="1241" height="1163" alt="Screenshot 2025-08-27 at 8 24 06 AM" src="https://github.com/user-attachments/assets/4dd9e882-efdc-48a0-b195-1ca610b322c9" />
+<img width="1065" height="1118" alt="Screenshot 2025-08-27 at 8 25 10 AM" src="https://github.com/user-attachments/assets/53bb093e-680f-4823-a661-1c312320edbf" />
 
 ## Features
 
